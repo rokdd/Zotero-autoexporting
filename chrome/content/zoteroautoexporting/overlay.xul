@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://zoteroautoexporting/content/toolbar.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://zoteroautoexporting/locale/hello.dtd">
+
+<overlay id="zoteroautoexporting-overlay"	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	
+	<!-- Include the main extension logic -->
+	
+	<script src="chrome://zoteroautoexporting/content/core.js"/>
+
+
+	<menupopup id="zotero-tb-actions-popup">
+               <!-- Make sure the menu separator for utilities is visible -->
+               <menuseparator id="zotero-tb-actions-utilities-separator" hidden="false"/>
+               <menuseparator id="zotero-tb-actions-plugins-separator2" insertbefore="zotero-tb-actions-prefs" hidden="false"/>
+		
+               <menuitem insertbefore="zotero-tb-actions-plugins-separator2" label="Run Zotero Autoexport"
+                       oncommand="ns_zotero_autoexport_toolbar.menu()"/>
+                           <menuitem insertafter="zotero-tb-actions-export" label="Export collections..."
+                       oncommand="ns_zotero_autoexport_toolbar.batch_export()"/>
+        </menupopup>
+
+</overlay>

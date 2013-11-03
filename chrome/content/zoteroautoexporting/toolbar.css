@@ -1,0 +1,23 @@
+#zotero-autoexport-status
+  {list-style-image: url("chrome://zoteroautoexporting/skin/toolbar-idle-24.png");
+  padding:0px !important;
+  }
+
+/* common style for all custom buttons */
+
+#zotero-autoexport-status.exportrunning
+{
+	list-style-image:  url("chrome://zoteroautoexporting/skin/toolbar-working-24.png");
+}
+
+/*
+[iconsize="small"] .exportrunning
+{
+	list-style-image:  url("chrome://zoteroautoexporting/skin/toolbar-16.gif");
+}
+
+[iconsize="small"] .zotero-autoexport-status
+  { list-style-image: url("chrome://zoteroautoexporting/skin/toolbar-idle-16.png") }
+
+[iconsize="small"] .zotero-autoexport-status:hover
+  {}*/

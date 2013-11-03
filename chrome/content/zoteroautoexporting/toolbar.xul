@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://zoteroautoexporting/content/toolbar.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://zoteroautoexporting/locale/hello.dtd">
+
+<overlay id="zoteroautoexporting-toolbar-overlay"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+	<toolbarpalette id="BrowserToolbarPalette">
+		<toolbarbutton type="menu-button" id="zotero-autoexport-status"
+			label="Zotero Autoexport Status" tooltiptext="Zotero AutoExport"
+			oncommand="ns_zotero_autoexport_toolbar.icon_click(event);" class="chromeclass-toolbar-additional zotero-autoexport-status">
+			<menupopup>
+				<menuitem label="Run Autoexport now.."
+					oncommand="ns_zotero_autoexport_toolbar.menu();event.stopPropagation();" />
+				<menuitem label="Configure"
+					oncommand="ns_zotero_autoexport_toolbar.prefs_open();event.stopPropagation();" />
+				<menuitem label="Support / Changelog / Donation"
+					oncommand="ns_zotero_autoexport_toolbar.open_url('http://rokdd.de/permanent:zotero-autoexporting');event.stopPropagation();" />
+				<menuitem label="Last Export: " id="menu_last_export"
+					locked="true" disabled="true" />
+			</menupopup>
+		</toolbarbutton>
+		<script type="application/x-javascript" src="chrome://zoteroautoexporting/content/core.js" />
+		<script type="application/x-javascript" src="chrome://zoteroautoexporting/content/commons.js" />
+		<script type="application/x-javascript" src="chrome://zoteroautoexporting/content/toolbar.js" />
+
+	</toolbarpalette>
+	
+</overlay>

@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="options.css" type="text/css"?>
+
+<dialog title="Zotero autoexporting" id="zotero-autoexporting-window" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" buttons="disclosure,extra2,accept,cancel" buttonlabelextra2="Apply settings and run manually for test" ondialogextra2="document.getElementById('zotero-autoexport-tabs').selectedIndex = 5;pref_handler.test_export();" buttonlabeldisclosure="Donate / Support / Changelog" ondialogdisclosure="pref_handler.open_url('http://rokdd.de/permanent:zotero-autoexporting');" onload="pref_handler.loadPrefs();pref_handler.refreshAddonMode();" ondialogcancel="pref_handler.onCancel();" ondialogaccept="pref_handler.onAccept();">
+	<prefpane label="Zotero autoexporting" id="zotero-autoexporting-panel-general">
+
+		<tabbox flex="1" id="zotero-autoexport-tabs">
+			<arrowscrollbox allowevents="true" class="tabbrowser-arrowscrollbox" orient="horizontal">
+				<tabs>
+					<tab id="tab_1" label="General" />
+					<tab id="tab_2" label="Export: Triggering events" />
+					<tab id="tab_3" label="Export: file format and path" />
+					<tab id="tab_4" label="Export: collections" />
+					<tab id="tab_9" label="Export: Postprocess" />
+					<tab id="tab_10" label="Debug and support" />
+				</tabs>
+			</arrowscrollbox>
+			<tabpanels flex="1">
+				<tabpanel flex="1" orient="vertical">
+					<checkbox label="Log message to console to encounter problems" id="zotero-autoexporting-showdebug" />
+					<groupbox>
+					<caption label="Addon mode"/>
+					<radiogroup id="zotero-autoexporting-addon-mode" oncommand="pref_handler.refreshAddonMode();">
+						<radio label="Batch mode: Export only manually" value="1" />
+						<!--  <checkbox label="Deactivate exporting to file in general" id="zotero-autoexporting-filedeactivate" />-->
+						<description width="350">
+							The addon does not export anything by a trigger. You can run the process manually by the menu item in Zotero or in the toolbar, using Run Zotero autoexport or Export collections.. 
+						</description>
+						<radio label="Autoexport mode: Export by triggers and also manually" value="2" />
+						<description width="350">The addon will run automatically by timer or changes in database. You can also export manually or by batch (this will affect existing settings)</description>
+						</radiogroup>
+						
+					</groupbox>
+				</tabpanel>
+				<tabpanel flex="1" orient="vertical">
+					<groupbox>
+						<caption label="Trigger by events" />
+						<checkbox label="export when items are added, removed or updated" id="zotero-autoexporting-file-event-trigger" />
+						<description>
+							Hint: To avoid a lack of performance, the export starts after 5
+							seconds to wait for pending changes. Note that some changes like
+							rearranging to collections is not noticed.
+						</description>
+					</groupbox>
+					<groupbox>
+						<caption label="Trigger by timer" />
+
+						<checkbox label="export by timer" id="zotero-autoexporting-file-event-timer" />
+						<checkbox label="try to keep the time interval between startups" id="zotero-autoexporting-file-bool-keep-interval" />
+						<hbox align="left">
+							<label class="thlabel" control="zoteroautoexporting.fileinterval" orient="horizontal" value="Minutes between saving" />
+							<textbox min="3" size="4" type="number" id="zotero-autoexporting-fileinterval" />
+						</hbox>
+
+					</groupbox>
+				</tabpanel>
+
+				<tabpanel flex="1" orient="vertical">
+					<groupbox>
+						<caption label="Format of export to file" />
+
+						<hbox align="left">
+							<label class="thlabel" value="Fileformat" control="zoteroautoexporting.filetranslator" />
+							<menulist id="format-menu" oncommand="pref_handler.updateOptions()">
+								<menupopup id="format-popup" />
+							</menulist>
+						</hbox>
+						<groupbox id="translator-options">
+							<caption id="translator-options-label" label="Advanced options" />
+							<vbox id="charset-box" hidden="true">
+								<separator class="thin" />
+								<label value="Charset:" control="charset-menu" />
+								<menulist id="export-option-exportCharset" />
+							</vbox>
+						</groupbox>
+						<hbox align="left">
+							<label class="thlabel" value="Path to file" />
+							<textbox id="zoteroautoexporting.filepathvirtual" size="40" readonly="true" />
+							<button oncommand="pref_handler.select_file('extensions.zoteroautoexporting.filenslfile','zoteroautoexporting.filepathvirtual','save');" label="Browse file" />
+							<button oncommand="pref_handler.reset_file('extensions.zoteroautoexporting.filenslfile','zoteroautoexporting.filepathvirtual');" label="Reset file" />
+						</hbox>
+
+						<description>
+							NEW: If you are not sure whether your options will work, you can use the test function on the bottom of this panel
+						</description>
+					</groupbox>
+				</tabpanel>
+				<tabpanel flex="1" orient="vertical">
+					<radiogroup id="zotero-autoexporting-file-mode-collection-map" oncommand="pref_handler.refreshCollectionlist()">
+						<radio label="No export of collections (only the whole library)" value="general-once-settings" />
+						<radio label="Export files of the following types of collections:" value="general-collection-settings" />
+						<checkbox label="every collection named by its name " id="zotero-autoexporting-file-bool-collection-map" />
+						<checkbox label="every subcollection named by its name " id="zotero-autoexporting-file-bool-subcollection-map" />
+						<radio label="Export only custom ones:" value="custom-collection-settings" />
+						<tree flex="1" id="treeCollection" hidecolumnpicker="true" height="200" editable="true">
+							<treecols>
+								<treecol id="CBoolExport" type="checkbox" label="Active" editable="true" />
+								<treecol id="cNameCollection" label="collection" editable="false" flex="1" />
+								<treecol id="cPath" label="converted filename" editable="false" flex="2" />
+
+							</treecols>
+
+<treechildren>
+ <treeitem container="true" open="true">
+      <treerow>
+        <treecell editable="false" label="" />
+        <treecell  editable="false"  label="Collections" properties="header_bold" />
+      </treerow>
+      
+      <treechildren id="treeCollectionChildren">
+      </treechildren>
+</treeitem>
+ <treeitem container="true" open="true">
+      <treerow>
+     <treecell editable="false"  label="" />
+        <treecell  editable="false"  label="Group collections" properties="header_bold" />
+      </treerow>
+      
+      <treechildren id="treeGroupsChildren">
+      </treechildren>
+</treeitem>
+ <treeitem container="true" open="true">
+      <treerow>
+      <treecell  editable="false" label="" />
+        <treecell editable="false"  label="Saved searches" properties="header_bold"/>
+      </treerow>
+      
+      <treechildren id="treeSearchesChildren">
+      </treechildren>
+      </treeitem>
+</treechildren>
+							
+							
+						
+						</tree>
+					</radiogroup>
+					<description>
+						NEW: If you are not sure whether your options will work, you can
+						use the test function on the bottom of this panel
+					</description>
+				</tabpanel>
+
+				<tabpanel flex="1" orient="vertical">
+					<checkbox label="Deactivate this feature " id="zotero-autoexporting-postprocess-bool" />
+					<hbox align="left">
+						<label class="thlabel" value="Path to file" />
+						<textbox id="zoteroautoexporting.postprocesspathvirtual" size="40" readonly="true" />
+						<button oncommand="pref_handler.select_file('extensions.zoteroautoexporting.postprocessfile','zoteroautoexporting.postprocesspathvirtual','select');" label="Browse file" />
+						<button oncommand="pref_handler.reset_file('extensions.zoteroautoexporting.postprocessfile','zoteroautoexporting.postprocesspathvirtual');" label="Reset file" />
+					</hbox>
+				</tabpanel>
+
+				<tabpanel flex="1" orient="vertical">
+
+					<groupbox>
+						<hbox align="left">
+							<textbox id="zoteroautoexporting.filestatus" size="60" rows="10" cols="120" multiline="true" readonly="true" />
+						</hbox>
+						<!--<button label="Reload log" oncommand="pref_handler.init_status();"/> -->
+						<caption label="Test your settings" />
+						<description width="350">
+							You are able to test your settings with button below. You should
+							get a message if process finished and a detailed log into the box
+							above. Please note that it will work like normal and overrides or
+							all files!
+						</description>
+					</groupbox>
+					<groupbox>
+						<caption label="Support and development" />
+						<description width="350" height="100">
+							If you are experiencing a problem or any issue so tell me with
+							lower right button, to improve the quality of addon. If you like
+							this addon, do not hesitate to write your opinion or to
+							contribute.
+						</description>
+					</groupbox>
+				</tabpanel>
+			</tabpanels>
+		</tabbox>
+	</prefpane>
+	<script type="application/x-javascript" src="commons.js" />
+</dialog>
