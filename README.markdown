@@ -1,3 +1,7 @@
+Zotero Autoexport is anextension to manage the export more automatic and with new functions in Zotero. If you like to contribute your knowledge or experiences feel free editing the code. You are invited to check out the script homepage http://rokdd.de/permanent:zotero-autoexporting for changelog / support / tipps and contact.    
+    
+    
+    
     Copyright (C) 2011 Robert Kühn
 
     This program is free software: you can redistribute it and/or modify
@@ -12,10 +16,6 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Also add information on how to contact you by electronic and paper mail.
-
-If the program does terminal interaction, make it output a short notice like this when it starts in an interactive mode:
 
     Zotero autoexporting Copyright (C) 2011 Robert Kühn
     This program comes with ABSOLUTELY NO WARRANTY
