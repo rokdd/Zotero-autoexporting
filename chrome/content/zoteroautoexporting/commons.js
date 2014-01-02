@@ -505,6 +505,7 @@ var pref_handler = {
 
 			Zotero.AutoExporting.boolLogAlltoPanel = false;
 			this.init_status();
+
 			alert('The tests ends');
 		}
 	},

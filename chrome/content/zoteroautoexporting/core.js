@@ -295,6 +295,7 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 	exportCollection : function(expTranslator, collectionId) {
 		var collections = Zotero.getCollections(collectionId);
 		var bool_file_success = false;
+		
 		for ( var c in collections) {
 
 			if (this.file_mode_collections_map == 'custom-collection-settings' && (typeof (this.custom_collections['Collection']['Collection_' + collections[c].id]) == 'undefined' || this.custom_collections['Collection']['Collection_' + collections[c].id]['bool-export'] == 'false')) {
@@ -308,6 +309,20 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 				// setup the new filenames from collection name
 				tempFile.leafName = collections[c].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") + ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
 
+				
+				//check whether the file is already written
+				if(typeof this.files['succeed'][tempFile.leafName] != 'undefined' || typeof this.files['problematic'][tempFile.leafName] != 'undefined')
+					{
+					for (i=2;i<99;i++)
+					{
+					  if(typeof this.files['problematic'][s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '')] == 'undefined')
+					   break;
+					}
+					this.log('File '+tempFile.leafName+' was already written. New filename now: '+s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : ''));
+					tempFile.leafName = s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
+					this.files['problematic'][tempFile.leafName]=tempFile.leafName;
+					}
+				
 				try {
 					expTranslator.setLocation(tempFile);
 
@@ -319,15 +334,20 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 				// check whether the file is written
 				if (tempFile.exists()) {
 					bool_file_success = true;
+					this.files['succeed'][tempFile.leafName]=tempFile.leafName;
 					this.log('Exported collection #' + '' + collections[c].id + ' called ' + collections[c].name + ' to file as ' + tempFile.leafName);
 				} else
+					{
+					this.files['failed'][tempFile.leafName]=tempFile.leafName;
 					this.log('Not Exported collection #' + '' + collections[c].id + ' called ' + collections[c].name + ' to file as ' + tempFile.leafName);
+					}
 			}
 			// check for sub_collections OR Custom
 			if ((this.file_subcollections_map || this.file_mode_collections_map == 'custom-collection-settings') && collections[c].hasChildCollections) {
 				this.exportCollection(expTranslator, collections[c].id);
 			}
 		}
+	
 		return bool_file_success;
 	},
 	exportSearch : function(expTranslator, collectionId) {
@@ -345,7 +365,9 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 		s.addCondition('noChildren', 'true'); // "Only show top level
 		// children
 		s.addCondition('includeParentsAndChildren', 'true');
-		"Include parent and child ..."
+		s.addCondition('deleted', 'false');
+		s.addCondition('unfiled', 'false');
+		
 		for ( var grou in groups) {
 
 			if (this.file_mode_collections_map == 'custom-collection-settings' && (typeof (this.custom_collections[itemType][itemType + '_' + groups[grou].id]) == 'undefined' || this.custom_collections[itemType][itemType + '_' + groups[grou].id]['bool-export'] == 'false')) {
@@ -355,31 +377,66 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 			} else {
 
 				this.log(itemType + ' ' + groups[grou].name + ' will be searched');
-				s.addCondition('libraryID', 'is', groups[grou].libraryID);
+				//WORKS ONLY AT FIREFOX AND NOT AT STANDALONE:
+				//s.addCondition('libraryID', 'is', groups[grou].libraryID);
+				//s.addCondition('collectionID', 'is', groups[grou].id);
 
-				var results = s.search();
-				var items = Zotero.Items.get(results);
-
+				//var s = Zotero.Searches.get(this.custom_collections['Search'][grou].id);
+				
+				//var results = s.search(groups[grou]);
+				//var items = Zotero.Items.get(results);
+				//.getCollections
+		
+				var items=Zotero.Items.getAll(true, groups[grou].libraryID,false);
+				if(items.length>0)
+					{
 				expTranslator.setItems(items);
+				
+				
 				var tempFile = this.filenslfile.clone();
 
 				// setup the new filenames from collection name
 				tempFile.leafName = groups[grou].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") + ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
 
+				//check whether the file is already written
+				if(typeof this.files['succeed'][tempFile.leafName] != 'undefined' || typeof this.files['problematic'][tempFile.leafName] != 'undefined')
+					{
+					for (i=2;i<99;i++)
+					{
+					  if(typeof this.files['problematic'][groups[grou].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '')] == 'undefined')
+					   break;
+					}
+					this.log('File '+tempFile.leafName+' ('+itemType+') was already written. New filename now: '+groups[grou].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : ''));
+					
+					tempFile.leafName = groups[grou].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
+					this.files['problematic'][tempFile.leafName]=tempFile.leafName;
+					}
+				
 				try {
 					expTranslator.setLocation(tempFile);
 
 					// now translate
 					expTranslator.translate();
+					// check whether the file is written
+					if (tempFile.exists()) {
+						bool_file_success = true;
+						this.files['succeed'][tempFile.leafName]=tempFile.leafName;
+						this.log('Exported ' + itemType + ' #' + '' + groups[grou].id + ' called ' + groups[grou].name + ' to file as ' + tempFile.leafName);
+					} else
+						{
+						this.files['failed'][tempFile.leafName]=tempFile.leafName;
+						this.log('Not Exported ' + itemType + ' #' + '' + groups[grou].id + ' called ' + groups[grou].name + ' to file as ' + tempFile.leafName);
+				}
 				} catch (err) {
 					this.log('The Zotero Translator (#' + itemType + ') does not work properly: ' + err.message);
+					this.files['failed'][tempFile.leafName]=tempFile.leafName;
 				}
-				// check whether the file is written
-				if (tempFile.exists()) {
-					bool_file_success = true;
-					this.log('Exported ' + itemType + ' #' + '' + groups[grou].id + ' called ' + groups[grou].name + ' to file as ' + tempFile.leafName);
-				} else
-					this.log('Not Exported ' + itemType + ' #' + '' + groups[grou].id + ' called ' + groups[grou].name + ' to file as ' + tempFile.leafName);
+					}
+				else
+					{
+					this.log('Not Exported ' + itemType + ' #' + '' + groups[grou].id + ' called ' + groups[grou].name + ' because there are no items');
+					
+					}
 			}
 		}
 		if (this.file_mode_collections_map == 'custom-collection-settings') {
@@ -388,6 +445,15 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 			// iterate through the groups
 			for ( var grou in this.custom_collections['Search']) {
 				var s = Zotero.Searches.get(this.custom_collections['Search'][grou].id);
+				s.addCondition('deleted', 'false');
+				s.addCondition('unfiled', 'false');
+				s.addCondition('recursive', 'true'); // equivalent of "Search
+				// subfolders" checked
+				s.addCondition('noChildren', 'true'); // "Only show top level
+				// children
+				s.addCondition('includeParentsAndChildren', 'true');
+				
+				
 
 				var results = s.search();
 				var items = Zotero.Items.get(results);
@@ -398,20 +464,39 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 				// setup the new filenames from collection name
 				tempFile.leafName = s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") + ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
 
+				//check whether the file is already written
+				if(typeof this.files['succeed'][tempFile.leafName] != 'undefined' || typeof this.files['problematic'][tempFile.leafName] != 'undefined')
+					{
+					for (i=2;i<99;i++)
+					{
+					  if(typeof this.files['problematic'][s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '')] == 'undefined')
+					   break;
+					}
+					this.log('File '+tempFile.leafName+' ('+itemType+') was already written. New filename now: '+s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : ''));
+					tempFile.leafName = s.name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_") +'-'+i+ ((/[.]/.exec(this.filenslfile.leafName)) ? '.' + /[^.]+$/.exec(this.filenslfile.leafName) : '');
+					this.files['problematic'][tempFile.leafName]=tempFile.leafName;
+					}
 				try {
 					expTranslator.setLocation(tempFile);
 
 					// now translate
 					expTranslator.translate();
+					
+					// check whether the file is written
+					if (tempFile.exists()) {
+						bool_file_success = true;
+						this.files['succeed'][tempFile.leafName]=tempFile.leafName;
+						this.log('Exported ' + itemType + ' #' + '' + s.id + ' called ' + s.name + ' to file as ' + tempFile.leafName);
+					} else
+						{
+						this.files['failed'][tempFile.leafName]=tempFile.leafName;
+						this.log('Not Exported ' + itemType + ' #' + '' + s.id + ' called ' + s.name + ' to file as ' + tempFile.leafName);
+						}
 				} catch (err) {
 					this.log('The Zotero Translator (#' + itemType + ') does not work properly: ' + err.message);
+					this.files['failed'][tempFile.leafName]=tempFile.leafName;
 				}
-				// check whether the file is written
-				if (tempFile.exists()) {
-					bool_file_success = true;
-					this.log('Exported ' + itemType + ' #' + '' + s.id + ' called ' + s.name + ' to file as ' + tempFile.leafName);
-				} else
-					this.log('Not Exported ' + itemType + ' #' + '' + s.id + ' called ' + s.name + ' to file as ' + tempFile.leafName);
+			
 			}
 
 		}
@@ -438,6 +523,8 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 			this.log('Translator for export inits');
 			try {
 				var expTranslator = new Zotero.Translate('export');
+				this.files={ 'succeed':{},'failed':{},'problematic':{}};
+				
 				// expTranslator.setHandler("translators", function (obj,
 				// item) { Zotero.AutoExporting.item_rewrite_key(obj,item);
 				// });
@@ -463,14 +550,17 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 					this.log('Initiated the translator. Skipped whole library..');
 				if (this.filenslfile.exists()) {
 					int_file_success++;
+					this.files['succeed'][this.filenslfile.leafName]=this.filenslfile.leafName;
 				}
 			} catch (err) {
 				this.log('The Zotero Translator (#main) does not work properly: ' + err.message);
+				this.files['failed'][this.filenslfile.leafName]=this.filenslfile.leafName;
 			}
 
 			// export the collections too
 			if (this.file_mode_collections_map != 'general-once-settings') {
 				this.log('Export the collections');
+				
 				this.exportCollection(expTranslator, null);
 
 				this.exportSearch(expTranslator, null, 'Group');
@@ -513,6 +603,18 @@ if ("undefined" != typeof (Zotero) && "undefined" == typeof (Zotero.AutoExportin
 		} else {
 			this.log('Fileobject is not specified or not writeable');
 		}
+		//check for errors
+		var str='';
+		for ( var file_prob in this.files['problematic']) 
+			str+=' '+file_prob;
+		if(str.length>0)
+		this.log('WARNING: The following files has a new name to avoid duplicates: '+str);
+		var str='';
+		for ( var file_prob in this.files['failed']) 
+			str+=' '+file_prob;
+		if(str.length>0)
+		this.log('ERROR: The following files could not stored: '+str);
+			
 		this.fileexportTimer();
 	},
 	format_date : function(currentTime) {
