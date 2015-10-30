@@ -2,8 +2,6 @@ var EXPORTED_SYMBOLS = [ "zoteroautoexport_toolbar" ];
  
 const { classes: Cc, interfaces: Ci } = Components;
 
-
-
 var zoteroautoexport_toolbar = {
 
 		icon_click : function (event) {
@@ -29,7 +27,7 @@ var zoteroautoexport_toolbar = {
 				var txt = 'Zotero Autoexport: Last export at ' + Zotero.AutoExporting.format_date(new Date(Zotero.AutoExporting.filelast * 1000));
 			}
 
-			zotero_autoexport_layout.call_xul_id_if_exists('menu_last_export', function (elem, txt) {
+			zotero_autoexport_layout.call_xul_id_if_exists('zotero_autoexport_menu_last_export', function (elem, txt) {
 				elem.setAttribute('label', txt);
 			}, txt);
 			elem.setAttribute('tooltiptext', txt);
@@ -108,13 +106,13 @@ var zoteroautoexport_toolbar = {
 					// be called immediately
 
 					// now compare with the old version
-					var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService);
+					var prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("extensions.zoteroautoexporting.");
 
-					if (prefManager.getPrefType('extensions.zoteroautoexporting.general-last-version') && prefManager.prefHasUserValue("extensions.zoteroautoexporting.general-last-version")) {
-						var old_version = ns_zotero_autoexport_toolbar.version_to_build_no(prefManager.getCharPref("extensions.zoteroautoexporting.general-last-version"));
+					if (prefManager.getPrefType('general-last-version') && prefManager.prefHasUserValue("general-last-version")) {
+						var old_version = ns_zotero_autoexport_toolbar.version_to_build_no(prefManager.getCharPref("general-last-version"));
 						// if version is older than 1.1.1 so we update for
 						// migration issues the button
-						prefManager.setCharPref("extensions.zoteroautoexporting.general-last-version", addon.version);
+						prefManager.setCharPref("general-last-version", addon.version);
 						if (ns_zotero_autoexport_toolbar.version_to_build_no('1.1.1') > old_version) {
 							// Zotero.AutoExporting.log('Detected build no. ' +
 							// old_version + ' and is older as 1.0.9: Install
@@ -125,26 +123,26 @@ var zoteroautoexport_toolbar = {
 
 						if (ns_zotero_autoexport_toolbar.version_to_build_no('1.1.2') > old_version) {
 // convert the old prefs for mode to the new one
-							if (prefManager.getBoolPref("extensions.zoteroautoexporting.filedeactivate") == true) {
+							if (prefManager.getBoolPref("filedeactivate") == true) {
 								
-								prefManager.setIntPref("extensions.zoteroautoexporting.addon-mode", '1');
+								prefManager.setIntPref("addon-mode", '1');
 															} else {
-										prefManager.setIntPref("extensions.zoteroautoexporting.addon-mode", '2');
+										prefManager.setIntPref("addon-mode", '2');
 														}
 							// convert the old prefs for collections to the new
 							// ones..
-							if (prefManager.getBoolPref("extensions.zoteroautoexporting.file-bool-subcollections-map") == true || prefManager.getBoolPref("extensions.zoteroautoexporting.file-bool-collections-map") == true) {
+							if (prefManager.getBoolPref("file-bool-subcollections-map") == true || prefManager.getBoolPref("file-bool-collections-map") == true) {
 								
-prefManager.setCharPref("extensions.zoteroautoexporting.file-mode-collection-map", 'general-collection-settings');
+prefManager.setCharPref("file-mode-collection-map", 'general-collection-settings');
 							} else
-								prefManager.setCharPref("extensions.zoteroautoexporting.file-mode-collection-map", 'general-once-settings');
+								prefManager.setCharPref("file-mode-collection-map", 'general-once-settings');
 						}
 
 					} else {
 						// Zotero.AutoExporting.log('Detected no build no. :
 						// Install button newly');
 						Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage('Detected no build no. : Install button newly');
-						prefManager.setCharPref("extensions.zoteroautoexporting.general-last-version", addon.version);
+						prefManager.setCharPref("general-last-version", addon.version);
 						ns_zotero_autoexport_toolbar.install_button("addon-bar", "zotero-autoexport-status");
 
 					}
@@ -194,8 +192,10 @@ prefManager.setCharPref("extensions.zoteroautoexporting.file-mode-collection-map
 					toolbar.collapsed = false;
 			}
 		}
-	}
+	};
 	window.addEventListener("load", function () {
+	
+	window.removeEventListener('load', this, false);
 		ns_zotero_autoexport_toolbar.init();
+		 
 	}, false);
-};

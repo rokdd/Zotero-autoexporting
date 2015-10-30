@@ -26,6 +26,8 @@ var zotero_autoexport_layout = {
 
 var pref_handler = {
 	cache : {},
+	
+	_charsets:false,
 	prefs_complex_list : {
 		'filenslfile' : 'filepathvirtual',
 		'postprocessfile' : 'postprocesspathvirtual'
@@ -62,14 +64,15 @@ var pref_handler = {
 			if (tree.view.getCellValue(i, tree.columns.getColumnAt(0)) == 'true') {
 
 				arr_collections[tree.contentView.getItemAtIndex(i).getAttribute('parent_type')][tree.contentView.getItemAtIndex(i).getAttribute('parent_type')+'_' + tree.contentView.getItemAtIndex(i).id] = {
-					'bool-export' : 'true','id': tree.contentView.getItemAtIndex(i).id
+					'bool-export' : 'true','pattern-export' : tree.view.getCellText(i, tree.columns.getColumnAt(2)),'id': tree.contentView.getItemAtIndex(i).id
 				};
 				
 			}
+		
 		}
 		var optionString = JSON.stringify(arr_collections);
 
-		this.prefManager.setCharPref("extensions.zoteroautoexporting.collection-profiles", optionString);
+		this.prefManager.setCharPref("collection-profiles", optionString);
 	},
 	refreshCollectionlist : function () {
 		// change by mode the options..
@@ -105,51 +108,77 @@ var pref_handler = {
 	}
 	,
 	
-	loadCollectionlist : function (Zotero, arr_pref, collectionId) {
+	loadCollectionlist : function (Zotero, arr_pref, collectionId,parent_collection) {
 		var treeCollectionChildren = document.getElementById("treeCollectionChildren");
+		if(typeof(parent_collection)!==undefined && typeof(parent_collection)=='object')
+			{
+		var collections =parent_collection.getCollections();
+			
+			}
+		else
+			var collections =Zotero.getCollections(collectionId);
 
-		var collections = Zotero.getCollections(collectionId);
-
+		//this.log_direct('length:'+collections.length);
+		
 		for (var c in collections) {
-
-			// setup the new filenames from collection name
-
-			var item = document.createElement("treeitem");
-			item.id = '' + collections[c].id;
-			item.setAttribute('parent_type','Collection');
-			var treeRowL = document.createElement("treerow");
-			// now setup false as default
-
-			// activeness?
-			var cellActive = document.createElement("treecell");
-			
-			if (typeof(arr_pref['Collection']['Collection_' + collections[c].id]) != 'undefined' && arr_pref['Collection']['Collection_' + collections[c].id]['bool-export'] == 'true')
-				cellActive.setAttribute("value", 'true');
-			else
-				cellActive.setAttribute("value", 'false');
-			
-			treeRowL.appendChild(cellActive);
-
-			// title
-			var cellTitle = document.createElement("treecell");
-			cellTitle.setAttribute("label", collections[c].name);
-			cellTitle.setAttribute("editable", 'false');
-			treeRowL.appendChild(cellTitle);
-
-			// path simulation
-			var cellSim = document.createElement("treecell");
-			cellSim.setAttribute("label", collections[c].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_"));
-			cellSim.setAttribute("editable", 'false');
-			treeRowL.appendChild(cellSim);
-
-			// add treeRow to item
-			item.appendChild(treeRowL);
 			// add item to children list
-			treeCollectionChildren.appendChild(item);
+			treeCollectionChildren.appendChild(this.loadBaselist_row(Zotero, arr_pref,'Collection','Collection_' + collections[c].id ,collections[c],collections[c].name));
 			// nest the extensions..
-			if (collections[c].hasChildCollections)
+			if (typeof collections[c].hasChildCollections !=='undefined' && collections[c].hasChildCollections)
 				this.loadCollectionlist(Zotero, arr_pref, collections[c].id);
 			}
+	},
+	loadBaselist_row:function(Zotero, arr_pref,id_col,id_row,obj_col,title_row)
+	{
+		var item = document.createElement("treeitem");
+		item.id = '' + obj_col.id;
+		item.setAttribute('parent_type',id_col);
+		var treeRowL = document.createElement("treerow");
+		// now setup false as default
+
+		// activeness?
+		var cellActive = document.createElement("treecell");
+		
+		if (typeof(arr_pref[id_col][id_row]) != 'undefined' && arr_pref[id_col][id_row]['bool-export'] == 'true')
+			cellActive.setAttribute("value", 'true');
+		else
+			cellActive.setAttribute("value", 'false');
+		
+		treeRowL.appendChild(cellActive);
+
+		// title
+		var cellTitle = document.createElement("treecell");
+		cellTitle.setAttribute("label", title_row);
+		cellTitle.setAttribute("editable", 'false');
+		treeRowL.appendChild(cellTitle);
+
+		//simu
+		var cellSim = document.createElement("treecell");
+		//pattern
+		var cellPattern = document.createElement("treecell");
+		if (typeof(arr_pref[id_col][id_row]) != 'undefined' && typeof(arr_pref[id_col][id_row]['pattern-export']) != 'undefined' && arr_pref[id_col][id_row]['pattern-export'] != '')
+			{
+			cellPattern.setAttribute("label", arr_pref[id_col][id_row]['pattern-export']);
+			
+			cellSim.setAttribute("label", Zotero.AutoExporting.format_filename(arr_pref[id_col][id_row]['pattern-export'],obj_col,id_col,null,'.'+/[^.]+$/.exec(Zotero.AutoExporting.filenslfile.leafName)));
+			}
+		else
+			{
+			cellSim.setAttribute("label", Zotero.AutoExporting.format_filename(title_row,obj_col,id_col,null,'.'+/[^.]+$/.exec(Zotero.AutoExporting.filenslfile.leafName)));
+			cellPattern.setAttribute("label","");
+			}
+		cellPattern.setAttribute("editable", 'true');
+		treeRowL.appendChild(cellPattern);			
+		
+		// path simulation
+		
+		
+		cellSim.setAttribute("editable", 'false');
+		treeRowL.appendChild(cellSim);
+
+		// add treeRow to item
+		item.appendChild(treeRowL);
+		return item;
 	},
 	loadGroupslist : function (Zotero, arr_pref, collectionId,kind) {
 		if(kind=="Group")
@@ -165,46 +194,25 @@ var pref_handler = {
 			var groups = Zotero.Searches.getAll();
 			}
 		for (var grou in groups) {
-
-			// setup the new filenames from collection name
-
-			var item = document.createElement("treeitem");
-			item.id = '' + groups[grou].id;
-			item.setAttribute('parent_type',kind);
-			item.setAttribute('parent_id',groups[grou].libraryID);
-			
-			
-			var treeRowL = document.createElement("treerow");
-			// now setup false as default
-
-			// activeness?
-			var cellActive = document.createElement("treecell");
-			if (typeof(arr_pref[kind][kind+'_' + groups[grou].id]) != 'undefined' && arr_pref[kind][kind+'_' + groups[grou].id]['bool-export'] == 'true')
-				cellActive.setAttribute("value", 'true');
+			treeCollectionChildren.appendChild(this.loadBaselist_row(Zotero, arr_pref,kind,kind+'_' + groups[grou].id,groups[grou],groups[grou].name));
+			if (groups[grou].hasCollections)
+				{
+				//this.loadCollectionlist(Zotero, arr_pref, collections[c].id);
+				var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+				// output to the console if the user defined the option as true
+				// (default is false)
+				consoleService.logStringMessage('[zoteroautoexporting] ' + 'Group or search have a sub:'+groups[grou].name);
+				
+				this.loadCollectionlist(Zotero,arr_pref,groups[grou].id,groups[grou]);
+				consoleService.logStringMessage('[zoteroautoexporting] ' + 'Group or search have a sub:'+groups[grou].name);
+		}
 			else
-				cellActive.setAttribute("value", 'false');
-			
-			treeRowL.appendChild(cellActive);
-
-			// title
-			var cellTitle = document.createElement("treecell");
-			  
-			cellTitle.setAttribute("label", groups[grou].name);
-			cellTitle.setAttribute("editable", 'false');
-			treeRowL.appendChild(cellTitle);
-
-			// path simulation
-			var cellSim = document.createElement("treecell");
-			cellSim.setAttribute("label",  groups[grou].name.replace(new RegExp('[,/\:*?""<>|]', 'g'), "_"));
-			cellSim.setAttribute("editable", 'false');
-			treeRowL.appendChild(cellSim);
-
-			// add treeRow to item
-			item.appendChild(treeRowL);
-			// add item to children list
-			treeCollectionChildren.appendChild(item);
-			// nest the extensions..
-			
+				{
+				var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+				// output to the console if the user defined the option as true
+				// (default is false)
+				consoleService.logStringMessage('[zoteroautoexporting] ' + 'Group or search have not a sub:'+groups[grou].name);
+				}
 			}
 	},
 	
@@ -219,8 +227,7 @@ var pref_handler = {
 		 * this.prefs_int_list['fileinterval']='fileinterval';
 		 * this.prefs_int_list['file-last']='file-last';
 		 */
-		this.prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService);
-		// .getBranch("extensions.zoteroautoexporting.");
+		this.prefManager = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("extensions.zoteroautoexporting.");
 		if ("undefined" == typeof(this.Zotero)) {
 			if (!("@zotero.org/Zotero;1" in Components.classes)) {
 				// alert('Zotero konnte nicht gefunden werden-');
@@ -231,7 +238,7 @@ var pref_handler = {
 		}
 
 		// setup the collections list
-		var collections_pref = this.prefManager.getCharPref("extensions.zoteroautoexporting.collection-profiles");
+		var collections_pref = this.prefManager.getCharPref("collection-profiles");
 		if (collections_pref) {
 			try {
 				var collections_pref = JSON.parse(collections_pref);
@@ -246,33 +253,33 @@ var pref_handler = {
 
 		// now setups the prefs into this class
 		for (var pref_id in this.prefs_int_list)
-			if(this.prefManager.getPrefType("extensions.zoteroautoexporting." + this.prefs_int_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_INT)
+			if(this.prefManager.getPrefType(this.prefs_int_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_INT)
 			
 				if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				document.getElementById('zotero-autoexporting-' + pref_id).value = this.prefManager.getIntPref("extensions.zoteroautoexporting." + this.prefs_int_list[pref_id]);
+				document.getElementById('zotero-autoexporting-' + pref_id).value = this.prefManager.getIntPref( this.prefs_int_list[pref_id]);
 			
 		for (var pref_id in this.prefs_bool_list)
-			if(this.prefManager.getPrefType("extensions.zoteroautoexporting." + this.prefs_bool_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_BOOL)
+			if(this.prefManager.getPrefType( this.prefs_bool_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_BOOL)
 		
 				if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				document.getElementById('zotero-autoexporting-' + pref_id).checked = this.prefManager.getBoolPref("extensions.zoteroautoexporting." + this.prefs_bool_list[pref_id]);
+				document.getElementById('zotero-autoexporting-' + pref_id).checked = this.prefManager.getBoolPref( this.prefs_bool_list[pref_id]);
 				
 		
 		for (var pref_id in this.prefs_string_list)
-			if(this.prefManager.getPrefType("extensions.zoteroautoexporting." + this.prefs_string_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_STRING)
+			if(this.prefManager.getPrefType( this.prefs_string_list[pref_id])==Components.interfaces.nsIPrefBranch.PREF_STRING)
 			
 				if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				document.getElementById('zotero-autoexporting-' + pref_id).value = this.prefManager.getCharPref("extensions.zoteroautoexporting." + this.prefs_string_list[pref_id]);
+				document.getElementById('zotero-autoexporting-' + pref_id).value = this.prefManager.getCharPref( this.prefs_string_list[pref_id]);
 		
 		for (var pref_id in this.prefs_complex_list)
 			this.init_file('extensions.zoteroautoexporting.' + pref_id, 'zoteroautoexporting.' + this.prefs_complex_list[pref_id]);
 		
 		//load the mode
 		if (document.getElementById('zotero-autoexporting-addon-mode') != null)
-			document.getElementById('zotero-autoexporting-addon-mode').value = this.prefManager.getIntPref("extensions.zoteroautoexporting.addon-mode");
+			document.getElementById('zotero-autoexporting-addon-mode').value = this.prefManager.getIntPref("addon-mode");
 
 		if (document.getElementById('zotero-autoexporting-file-mode-collection-map') != null)
-			 document.getElementById('zotero-autoexporting-file-mode-collection-map').value=this.prefManager.getCharPref("extensions.zoteroautoexporting.file-mode-collection-map");
+			 document.getElementById('zotero-autoexporting-file-mode-collection-map').value=this.prefManager.getCharPref("file-mode-collection-map");
 
 		// load the box with latest logs
 		this.init_status();
@@ -280,9 +287,12 @@ var pref_handler = {
 		this.refreshCollectionlist();
 
 		// arrange the menu with zotero translators
-		var selectedTranslator = this.prefManager.getCharPref("extensions.zoteroautoexporting.filetranslator");
+		var selectedTranslator = this.prefManager.getCharPref("filetranslator");
 
 		if ("undefined" != typeof(Zotero)) {
+			//load once the charsetmenu hanfdler
+			
+
 			var translators = Zotero.Translators.getAllForType('export');
 			translators.sort(function (a, b) {
 				return a.label.localeCompare(b.label)
@@ -337,6 +347,12 @@ var pref_handler = {
 				 * true); }
 				 */
 			}
+
+			// from charsetMenu.js
+		if(Zotero.Prefs.get("export.displayCharsetOption")) {
+			this._charsets = Zotero_Charset_Menu.populate(document.getElementById(OPTION_PREFIX+"exportCharset"), true);
+		}
+
 			// just load the advanced options.. PART OF ZOTERO, but configured
 			// for this extension..
 
@@ -348,7 +364,7 @@ var pref_handler = {
 		const OPTION_PREFIX = "export-option-";
 		var index = document.getElementById("format-menu").selectedIndex;
 		var translatorOptions = this.translators[index].displayOptions;
-		var optionString = this.prefManager.getCharPref("extensions.zoteroautoexporting.file-advancedoptions");
+		var optionString = this.prefManager.getCharPref("file-advancedoptions");
 		if (optionString) {
 			try {
 				var options = JSON.parse(optionString);
@@ -391,20 +407,21 @@ var pref_handler = {
 			}
 		}
 
-		// handle charset popup
-		/*
-		 * if (_charsets && translatorOptions.exportCharset) { optionsBox.hidden =
-		 * undefined; document.getElementById("charset-box").hidden = undefined;
-		 * var charsetMenu = document.getElementById(OPTION_PREFIX +
-		 * "exportCharset"); var charset = "UTF-8"; if (options &&
-		 * options.exportCharset && _charsets[options.exportCharset]) { charset =
-		 * options.exportCharset; } else if (translatorOptions.exportCharset &&
-		 * _charsets[translatorOptions.exportCharset]) { charset =
-		 * translatorOptions.exportCharset; }
-		 * 
-		 * charsetMenu.selectedItem = _charsets[charset]; } else {
-		 * document.getElementById("charset-box").hidden = true; }
-		 */
+if(this._charsets && translatorOptions.exportCharset) {
+			optionsBox.hidden = undefined;
+			document.getElementById("charset-box").hidden = undefined;
+			var charsetMenu = document.getElementById(OPTION_PREFIX+"exportCharset");
+			var charset = "UTF-8";
+			if(options && options.exportCharset && this._charsets[options.exportCharset]) {
+				charset = options.exportCharset;
+			} else if(translatorOptions.exportCharset && this._charsets[translatorOptions.exportCharset]) {
+				charset = translatorOptions.exportCharset;
+			}
+			
+			charsetMenu.selectedItem = this._charsets[charset];
+		} else {
+			document.getElementById("charset-box").hidden = true;
+		}
 
 	},
 	batchAccept : function () {
@@ -421,34 +438,35 @@ var pref_handler = {
 	onAccept : function () {
 		const OPTION_PREFIX = "export-option-";
 		// now save all values
+		
 		for (var pref_id in this.prefs_int_list)
 			if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				this.prefManager.setIntPref("extensions.zoteroautoexporting." + this.prefs_int_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).value);
+				this.prefManager.setIntPref( this.prefs_int_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).value);
 		
 		for (var pref_id in this.prefs_bool_list)
 			if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				this.prefManager.setBoolPref("extensions.zoteroautoexporting." + this.prefs_bool_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).checked);
+				this.prefManager.setBoolPref( this.prefs_bool_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).checked);
 		
 
 		for (var pref_id in this.prefs_string_list)
 			if (document.getElementById('zotero-autoexporting-' + pref_id) != null)
-				this.prefManager.setCharPref("extensions.zoteroautoexporting." + this.prefs_string_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).value);
+				this.prefManager.setCharPref( this.prefs_string_list[pref_id], document.getElementById('zotero-autoexporting-' + pref_id).value);
 
-
+		
 		for (var pref_id in this.prefs_complex_list)
 			if (this.cache['pref_' + 'extensions.zoteroautoexporting.' + pref_id] != null)
-				this.prefManager.setComplexValue('extensions.zoteroautoexporting.' + pref_id, Components.interfaces.nsILocalFile, this.cache['pref_' + 'extensions.zoteroautoexporting.' + pref_id]);
+				this.prefManager.setComplexValue( pref_id, Components.interfaces.nsILocalFile, this.cache['pref_' + 'extensions.zoteroautoexporting.' + pref_id]);
 			else
-				this.prefManager.clearUserPref('extensions.zoteroautoexporting.' + pref_id);
+				this.prefManager.clearUserPref( pref_id);
 
 		// save the choosen translator
-		this.prefManager.setCharPref("extensions.zoteroautoexporting.filetranslator", document.getElementById("format-menu").selectedItem.value);
+		this.prefManager.setCharPref("filetranslator", document.getElementById("format-menu").selectedItem.value);
 		
 		if (document.getElementById('zotero-autoexporting-addon-mode') != null)
-			 this.prefManager.setIntPref("extensions.zoteroautoexporting.addon-mode",document.getElementById('zotero-autoexporting-addon-mode').value);
+			 this.prefManager.setIntPref("addon-mode",document.getElementById('zotero-autoexporting-addon-mode').value);
 
 		if (document.getElementById('zotero-autoexporting-file-mode-collection-map') != null)
-			 this.prefManager.setCharPref("extensions.zoteroautoexporting.file-mode-collection-map",document.getElementById('zotero-autoexporting-file-mode-collection-map').value);
+			 this.prefManager.setCharPref("file-mode-collection-map",document.getElementById('zotero-autoexporting-file-mode-collection-map').value);
 
 		
 		// save the advanced options
@@ -465,12 +483,14 @@ var pref_handler = {
 			var element = document.getElementById(OPTION_PREFIX + option);
 
 			if (option == "exportCharset") {
-				continue;
-				if (_charsets) {
+				if(document.getElementById("charset-box").hidden!=true)
+				{
+				if (this._charsets) {
 					displayOptions[option] = element.selectedItem.value;
 				} else {
 					displayOptions[option] = optionsAvailable[option];
 				}
+			}
 			} else if (typeof(defValue) == "boolean") {
 				displayOptions[option] = !!element.checked;
 			}
@@ -478,7 +498,7 @@ var pref_handler = {
 
 		// save options
 		var optionString = JSON.stringify(displayOptions);
-		this.prefManager.setCharPref("extensions.zoteroautoexporting.file-advancedoptions", optionString);
+		this.prefManager.setCharPref("file-advancedoptions", optionString);
 
 	},
 	onCancel : function () {},
@@ -497,13 +517,18 @@ var pref_handler = {
 			this.onAccept();
 
 			alert('Now the settings are saved and we just run..');
+
 			// set that we are log all
 			Zotero.AutoExporting.boolLogAlltoPanel = true;
 			Zotero.AutoExporting.log('----- Test run-------');
+				//just tell the trigger that it is execute for testing purposes
+			Zotero.AutoExporting.testmode=true;
+			Zotero.AutoExporting.log('Testmode is activated');
 			if (Zotero.AutoExporting.renew_timer('Manually run and prefs might be changed') != false)
 				Zotero.AutoExporting.autoexport();
 
 			Zotero.AutoExporting.boolLogAlltoPanel = false;
+			Zotero.AutoExporting.testmode=false;
 			this.init_status();
 
 			alert('The tests ends');
@@ -564,12 +589,13 @@ var pref_handler = {
 	},
 	init_file : function (prefid, prefbox) {
 
-		if (this.prefManager.prefHasUserValue(prefid)) {
-			var temp = this.prefManager.getComplexValue(prefid, Components.interfaces.nsILocalFile);
+		if (this.prefManager.prefHasUserValue(prefid.replace('extensions.zoteroautoexporting.',''))) {
+			var temp = this.prefManager.getComplexValue(prefid.replace('extensions.zoteroautoexporting.',''), Components.interfaces.nsILocalFile);
 			if (temp.path.length > 0) {
 				zotero_autoexport_layout.call_xul_id_if_exists(prefbox, function (elem, temp) {
 					elem.value = temp.path;
 				}, temp);
+				
 				this.cache['pref_' + prefid] = temp;
 				return true;
 			}
@@ -580,11 +606,41 @@ var pref_handler = {
 			elem.value = 'not set yet';
 		});
 	},
+	json_decode: function(prefid)
+	{
+		try
+		{
+		var json=JSON.parse(prefid);
+		return json;
+		}
+		catch(e)
+		{
+			var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+			// output to the console if the user defined the option as true
+			// (default is false)
+			consoleService.logStringMessage('[zoteroautoexporting] ' + e.message);
+			return JSON.parse('{}');
+		}
+	},
+	json_encode: function(str)
+	{
+		//clean the string
+		str=JSON.stringify(str);
+		str = str.replace(/[^\u0000-\u007F]+/g, "");
+		return str;
+	},
+	log_direct: function(msg)
+	{
+		var consoleService = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
+		// output to the console if the user defined the option as true
+		// (default is false)
+		consoleService.logStringMessage('[zoteroautoexporting] ' + msg);
+	},
 	init_status : function () {
 		// set the logbox
 		var logboxtext = '';
 
-		var json_log = JSON.parse(this.prefManager.getCharPref("extensions.zoteroautoexporting.filestatus", '{}'));
+		var json_log = this.json_decode(this.prefManager.getCharPref('filestatus', '{}'));
 
 		var sort_keys = new Array();
 		var sort_obj = {};

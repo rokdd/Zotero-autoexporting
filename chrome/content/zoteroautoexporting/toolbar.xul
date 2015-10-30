@@ -16,7 +16,7 @@
 					oncommand="ns_zotero_autoexport_toolbar.prefs_open();event.stopPropagation();" />
 				<menuitem label="Support / Changelog / Donation"
 					oncommand="ns_zotero_autoexport_toolbar.open_url('http://rokdd.de/permanent:zotero-autoexporting');event.stopPropagation();" />
-				<menuitem label="Last Export: " id="menu_last_export"
+				<menuitem label="Last Export: " id="zotero_autoexport_menu_last_export"
 					locked="true" disabled="true" />
 			</menupopup>
 		</toolbarbutton>
