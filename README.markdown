@@ -1,4 +1,4 @@
-Zotero Autoexport is anextension to manage the export more automatic and with new functions in Zotero. If you like to contribute your knowledge or experiences feel free editing the code. You are invited to check out the script homepage http://rokdd.de/permanent:zotero-autoexporting for changelog / support / tipps and contact.    
+Zotero Autoexport is anextension to manage the export more automatic and with new functions in Zotero. If you like to contribute your knowledge or experiences feel free editing the code. You are invited to check out the script homepage https://rokdd.xyz/tech/zotero-addon-for-autoexporting-files/ for changelog / support / tipps and contact.    
     
     
     
